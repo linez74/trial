@@ -84,7 +84,13 @@
   import {HandLandmarker,FilesetResolver} from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js';
   
     // Landmark detection code
-    
+    wait for HandLandmarker to initialize
+    let isHandLandmarkerInitialized = false;
+    async function waitUntilHandLandmarkerInitialized(){
+        while (!isHandLandmarkerInitialized){
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    }
 
     const demosSection = document.getElementById("demos");
 
@@ -108,6 +114,7 @@
         runningMode: runningMode,
         numHands: 2
       });
+        isHandLandmarkerInitialized = true;
       demosSection.classList.remove("invisible");
     };
     createHandLandmarker();
@@ -160,6 +167,7 @@
   [0, 17], [17, 18], [18, 19], [19, 20] // Little finger
 ];
     async function predictWebcam() {
+        await waitUntilHandLandmarkerInitialized();
       canvasElement.style.width = video.videoWidth + "px";
       canvasElement.style.height = video.videoHeight + "px";
       canvasElement.width = video.videoWidth;
