@@ -190,11 +190,11 @@
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
       if (results && results.landmarks) {
         for (const landmarks of results.landmarks) {
-          drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
+           drawLandmarksAndConnections(canvasCtx, landmarks, HAND_CONNECTIONS, {
             color: "#00FF00",
+            radius: 5,
             lineWidth: 5
           });
-          drawLandmarks(canvasCtx, landmarks, { color: "#FF0000", lineWidth: 2 });
         }
       }
       canvasCtx.restore();
