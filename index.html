@@ -175,7 +175,7 @@
     
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      if (results.landmarks) {
+      if (results && results.landmarks) {
         for (const landmarks of results.landmarks) {
           drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
             color: "#00FF00",
