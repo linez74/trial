@@ -206,34 +206,38 @@
     }
 
     // Helper functions for drawing landmarks
-    function drawConnectors(context, landmarks, connections, options) {
-      for (const connection of connections) {
-        drawConnectorsOnImage(context, landmarks[connection[0]], landmarks[connection[1]], options);
-      }
-    }
+    // Helper function for drawing landmarks and connections
+function drawLandmarksAndConnections(context, landmarks, connections, options) {
+  context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+  
+  for (const landmark of landmarks) {
+    drawLandmark(context, landmark, options);
+  }
 
-    function drawConnectorsOnImage(context, landmark1, landmark2, options) {
-      context.beginPath();
-      context.strokeStyle = options.color;
-      context.lineWidth = options.lineWidth;
-      context.moveTo(landmark1.x, landmark1.y);
-      context.lineTo(landmark2.x, landmark2.y);
-      context.stroke();
-    }
+  for (const connection of connections) {
+    const [idx1, idx2] = connection;
+    const landmark1 = landmarks[idx1];
+    const landmark2 = landmarks[idx2];
+    drawConnection(context, landmark1, landmark2, options);
+  }
+}
 
-    function drawLandmarks(context, landmarks, options) {
-      for (const landmark of landmarks) {
-        drawLandmarkOnImage(context, landmark, options);
-      }
-    }
+function drawLandmark(context, landmark, options) {
+  context.beginPath();
+  context.fillStyle = options.color;
+  context.arc(landmark.x, landmark.y, options.radius, 0, 2 * Math.PI);
+  context.fill();
+}
 
-    function drawLandmarkOnImage(context, landmark, options) {
-      context.beginPath();
-      context.fillStyle = options.color;
-      context.lineWidth = options.lineWidth;
-      context.arc(landmark.x, landmark.y, options.lineWidth, 0, 2 * Math.PI);
-      context.fill();
-    }
+function drawConnection(context, landmark1, landmark2, options) {
+  context.beginPath();
+  context.strokeStyle = options.color;
+  context.lineWidth = options.lineWidth;
+  context.moveTo(landmark1.x, landmark1.y);
+  context.lineTo(landmark2.x, landmark2.y);
+  context.stroke();
+}
+
 
     const toggleButton = document.getElementById('toggle_button');
 toggleButton.addEventListener('click', toggleCamera);
