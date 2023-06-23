@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Arabic Sign Language Recognition</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f9e9eb;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 36px;
+            color: #333;
+        }
+
+        #video_container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 480px;
+            width: 480px;
+            background-color: #fff;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        #video_feed {
+            width: 100%;
+        }
+
+        #toggle_button {
+            background-color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            color: #333;
+            padding: 10px;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+
+        #toggle_button:hover {
+            background-color: #eee;
+        }
+
+        #toggle_button:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Arabic Sign Language Recognition</h1>
+    <div id="video_container">
+        <video id="video_feed" autoplay></video>
+        <canvas id="output_canvas"></canvas>
+    </div>
+    <div id="demos" class="invisible">
+      <h2>Demo section</h2>
+  </div>
+    <br>
+    <button id="toggle_button" >
+        <i id="camera_icon" class="fas fa-camera"></i>
+    </button>
+
+
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.js"></script>
+    
+
+    
+<script type="module"> 
+  import {HandLandmarker,FilesetResolver} from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js';
+  
+    // Landmark detection code
+    
+
+    const demosSection = document.getElementById("demos");
+
+    let handLandmarker = undefined;
+    let runningMode = "IMAGE";
+    let enableWebcamButton;
+    let webcamRunning = false;
+
+    // Before we can use HandLandmarker class we must wait for it to finish
+    // loading. Machine Learning models can be large and take a moment to
+    // get everything needed to run.
+    const createHandLandmarker = async () => {
+      const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm");
+      handLandmarker = await HandLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: 
+    "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+
+          delegate: "GPU"
+        },
+        runningMode: runningMode,
+        numHands: 2
+      });
+      demosSection.classList.remove("invisible");
+    };
+    createHandLandmarker();
+
+    const video = document.getElementById("video_feed") ;
+    const canvasElement = document.getElementById("output_canvas") ;
+    const canvasCtx = canvasElement.getContext("2d");
+
+    const toggleCamera = () =>{
+        var videoContainer = document.getElementById("video_container");
+        var videoFeed = document.getElementById("video_feed");
+        var cameraIcon = document.getElementById("camera_icon");
+      
+        if (videoFeed.srcObject) {
+          // Camera is already open, so we close it
+          videoFeed.srcObject.getTracks().forEach(function(track) {
+            track.stop();
+          });
+          videoFeed.srcObject = null;
+          cameraIcon.classList.remove("fa-video");
+          cameraIcon.classList.add("fa-camera");
+          videoContainer.style.display = "none";
+          webcamRunning = false;
+        } else {
+          // Camera is closed, so we open it
+          var constraints = { video: true };
+      
+          navigator.mediaDevices.getUserMedia(constraints)
+            .then(function(stream) {
+              videoFeed.srcObject = stream;
+              cameraIcon.classList.remove("fa-camera");
+              cameraIcon.classList.add("fa-video");
+              videoContainer.style.display = "flex";
+              webcamRunning = true;
+              predictWebcam();
+            })
+            .catch(function(error) {
+              console.log("Error accessing camera:", error);
+            });
+        }
+    }
+    
+    let lastVideoTime = -1;
+    let results = undefined;
+
+    async function predictWebcam() {
+      canvasElement.style.width = video.videoWidth + "px";
+      canvasElement.style.height = video.videoHeight + "px";
+      canvasElement.width = video.videoWidth;
+      canvasElement.height = video.videoHeight;
+      
+      // Now let's start detecting the stream.
+      if (runningMode === "IMAGE") {
+        runningMode = "VIDEO";
+        await handLandmarker.setOptions({ runningMode: "VIDEO" });
+      }
+      
+      let startTimeMs = performance.now();
+      if (lastVideoTime !== video.currentTime) {
+        lastVideoTime = video.currentTime;
+        results = handLandmarker.detectForVideo(video, startTimeMs);
+      }
+    
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      if (results.landmarks) {
+        for (const landmarks of results.landmarks) {
+          drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
+            color: "#00FF00",
+            lineWidth: 5
+          });
+          drawLandmarks(canvasCtx, landmarks, { color: "#FF0000", lineWidth: 2 });
+        }
+      }
+      canvasCtx.restore();
+    
+      // Call this function again to keep predicting when the browser is ready.
+      if (webcamRunning === true) {
+        window.requestAnimationFrame(predictWebcam);
+      }
+    }
+
+    // Helper functions for drawing landmarks
+    function drawConnectors(context, landmarks, connections, options) {
+      for (const connection of connections) {
+        drawConnectorsOnImage(context, landmarks[connection[0]], landmarks[connection[1]], options);
+      }
+    }
+
+    function drawConnectorsOnImage(context, landmark1, landmark2, options) {
+      context.beginPath();
+      context.strokeStyle = options.color;
+      context.lineWidth = options.lineWidth;
+      context.moveTo(landmark1.x, landmark1.y);
+      context.lineTo(landmark2.x, landmark2.y);
+      context.stroke();
+    }
+
+    function drawLandmarks(context, landmarks, options) {
+      for (const landmark of landmarks) {
+        drawLandmarkOnImage(context, landmark, options);
+      }
+    }
+
+    function drawLandmarkOnImage(context, landmark, options) {
+      context.beginPath();
+      context.fillStyle = options.color;
+      context.lineWidth = options.lineWidth;
+      context.arc(landmark.x, landmark.y, options.lineWidth, 0, 2 * Math.PI);
+      context.fill();
+    }
+
+    const toggleButton = document.getElementById('toggle_button');
+toggleButton.addEventListener('click', toggleCamera);
+</script>
+</body>
+</html>
